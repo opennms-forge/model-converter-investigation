@@ -5,31 +5,6 @@ import java.util.ArrayList;
 public class SchemaItem {
     String name;
 
-    public void generateSchema(SchemaWriter writer, int level) {
-        writer.writeentry(level, name + ":");
-        if ((type != Type.undefined) && (type != Type.reference)) {
-            writer.writeentry(level + 1, "type: " + getOpenapiTypeName());
-        }
-
-        if (type == Type.reference) {
-            if (arrayMax == 1) {
-                writer.writeentry(level + 1, "$ref: \"" + reference + "\"");
-            } else {
-                // If it is an array reference, formatting is a little different
-                writer.writeentry(level + 1, "type: array");
-                writer.writeentry(level + 1, "items:");
-                writer.writeentry(level + 2, "$ref: \"" + reference+ "\"");
-            }
-        } else if (type == Type.objectType) {
-            writer.writeentry(level + 1, "properties:");
-
-            for (int i = 0; i < children.size(); i++) {
-                SchemaItem schemaItem = children.get(i);
-                schemaItem.generateSchema(writer, level + 2);
-            }
-        }
-    }
-
 
     public enum Type {
         undefined,
@@ -42,6 +17,8 @@ public class SchemaItem {
         booleanType
     }
     Type type = Type.undefined;
+
+    String format = ""; // Optional free-form in openapi spec
 
     ArrayList<SchemaItem> children = new ArrayList<>();
     String reference = "";
@@ -69,6 +46,14 @@ public class SchemaItem {
 
     public void setType(Type type) {
         this.type = type;
+    }
+
+    public String getFormat() {
+        return format;
+    }
+
+    public void setFormat(String format) {
+        this.format = format;
     }
 
     public void addChild(SchemaItem child) {
@@ -116,6 +101,65 @@ public class SchemaItem {
             case undefined: return "UNDEFINED";
         }
         return null;
+    }
+
+    public void generateJSONSchema(SchemaWriter writer, int level) {
+        writer.writeentry(level, "\"" + name + "\": {");
+        if ((type != Type.undefined) && (type != Type.reference)) {
+            writer.writeentry(level + 1, "\"type\": \"" + getOpenapiTypeName() + "\"");
+            if (format != null && !format.isEmpty()) {
+                writer.writeentry(level + 1, "\"format\": " + format);
+            }
+        }
+
+        if (type == Type.reference) {
+            if (arrayMax == 1) {
+                writer.writeentry(level + 1, "\"$ref\": \"" + reference + "\"");
+            } else {
+                // If it is an array reference, formatting is a little different
+                writer.writeentry(level + 1, "\"type\": \"array\"");
+                writer.writeentry(level + 1, "\"items\": {");
+                writer.writeentry(level + 2, "\"$ref\": \"" + reference+ "\"");
+                writer.writeentry(level + 1, "}");
+            }
+        } else if (type == Type.objectType) {
+            writer.writeentry(level + 1, "\"properties\": {");
+
+            for (int i = 0; i < children.size(); i++) {
+                SchemaItem schemaItem = children.get(i);
+                schemaItem.generateJSONSchema(writer, level + 2);
+            }
+            writer.writeentry(level + 1, "}");
+        }
+        writer.writeentry(level, "}");
+    }
+
+    public void generateYamlSchema(SchemaWriter writer, int level) {
+        writer.writeentry(level, "\"" + name + "\": {");
+        if ((type != Type.undefined) && (type != Type.reference)) {
+            writer.writeentry(level + 1, "type: " + getOpenapiTypeName());
+            if (format != null && !format.isEmpty()) {
+                writer.writeentry(level + 1, "format: " + format);
+            }
+        }
+
+        if (type == Type.reference) {
+            if (arrayMax == 1) {
+                writer.writeentry(level + 1, "$ref: '" + reference + "'");
+            } else {
+                // If it is an array reference, formatting is a little different
+                writer.writeentry(level + 1, "type: array");
+                writer.writeentry(level + 1, "items:");
+                writer.writeentry(level + 2, "$ref: '" + reference+ "'");
+            }
+        } else if (type == Type.objectType) {
+            writer.writeentry(level + 1, "properties:");
+
+            for (int i = 0; i < children.size(); i++) {
+                SchemaItem schemaItem = children.get(i);
+                schemaItem.generateYamlSchema(writer, level + 2);
+            }
+        }
     }
 
 }

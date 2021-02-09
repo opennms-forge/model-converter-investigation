@@ -8,7 +8,7 @@ class XSDConverterTest_OBSOLETE {
 
     @Test
     void parseXSD() {
-        XSDConverter_OBSOLETE converter = new XSDConverter_OBSOLETE(new File("testSchema.xsd"));
+        XSDConverter_OBSOLETE converter = new XSDConverter_OBSOLETE(new File("testVacuumdSchema.xsd"));
         converter.parseXSD();
     }
 }

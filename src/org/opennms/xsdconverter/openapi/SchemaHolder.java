@@ -17,17 +17,38 @@ public class SchemaHolder {
         return schemaItems;
     }
 
-    public String generateOpenapiDefinitions() {
-        SchemaWriter writer = new SchemaWriter();
-        writer.writeentry(0, "components:");
-        writer.writeentry(1, "schemas");
+    public String generateJSONOpenapiDefinitions() {
+        SchemaWriter writer = new SchemaWriter(true);
+        writer.writeentry(0, "\"components\": {");
+        writer.writeentry(1, "\"schemas\": {");
 
         // Now go through all the top level schema items and write them out
         for (Iterator<SchemaItem> iterator = schemaItems.iterator(); iterator.hasNext(); ) {
             SchemaItem schemaItem = iterator.next();
-            schemaItem.generateSchema(writer, 2);
+            schemaItem.generateJSONSchema(writer, 2);
         }
+
+        writer.writeentry(1, "}");
+        writer.writeentry(0, "}");
 
         return writer.getResult();
     }
+
+    public String generateYamlOpenapiDefinitions() {
+        SchemaWriter writer = new SchemaWriter(false);
+        writer.writeentry(0, "components:");
+        writer.writeentry(1, "schemas:");
+
+        // Now go through all the top level schema items and write them out
+        for (Iterator<SchemaItem> iterator = schemaItems.iterator(); iterator.hasNext(); ) {
+            SchemaItem schemaItem = iterator.next();
+            schemaItem.generateYamlSchema(writer, 2);
+        }
+
+        writer.writeentry(1, "}");
+        writer.writeentry(0, "}");
+
+        return writer.getResult();
+    }
+
 }

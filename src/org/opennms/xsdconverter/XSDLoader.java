@@ -138,25 +138,32 @@ public class XSDLoader {
         processedElement.setArrayMin(minOccurs);
         if (maxOccurs != 1) {
             processedElement.setType(SchemaItem.Type.arrayType);
-            System.out.println("Set array type, max is " + maxOccurs + " for node " + processedElement.getName());
         }
 
 
         String xsdType = getAttributeValue(attrs, "type");
-        SchemaItem.Type convertedType = getOpenapiType(xsdType);
-        if (convertedType != null) {
-            processedElement.setType(convertedType);
-        }
+        setTypes(processedElement, xsdType);
     }
 
-    private SchemaItem.Type getOpenapiType(String xsdType) {
+    private void setTypes(SchemaItem item, String xsdType) {
+        SchemaItem.Type type = SchemaItem.Type.undefined;
+        String format = "";
+
         switch(xsdType) {
-            case "string": return SchemaItem.Type.stringType;
-            case "boolean": return SchemaItem.Type.booleanType;
-            case "decimal":
-            case "double":
-                return SchemaItem.Type.numberType;
-            case "int": return SchemaItem.Type.integerType;
+            case "string": type = SchemaItem.Type.stringType;
+                break;
+            case "boolean": type = SchemaItem.Type.booleanType;
+                break;
+            case "decimal": type = SchemaItem.Type.integerType;
+            case "double": type = SchemaItem.Type.numberType;
+                format = "double";
+                break;
+            case "integer":
+            case "int": type = SchemaItem.Type.integerType;
+                break;
+            case "long": type = SchemaItem.Type.integerType;
+                format = "int64";
+                break;
 
             case "base64Binary":
             case "hexBinary":
@@ -185,10 +192,8 @@ public class XSDLoader {
             case "IDREFS":
             case "ENTITY":
             case "ENTITIES":
-            case "integer":
             case "nonPositiveInteger":
             case "negativeInteger":
-            case "long":
             case "short":
             case "byte":
             case "nonNegativeInteger":
@@ -199,7 +204,13 @@ public class XSDLoader {
             case "unsignedByte":
             default:
         }
-        return null;
+        if (type != SchemaItem.Type.undefined) {
+            item.setType(type);
+            if (! format.isEmpty()) {
+                item.setFormat(format);
+            }
+        }
+
     }
 
     private void processChildren(SchemaItem processedParent, Node element) {
@@ -207,10 +218,33 @@ public class XSDLoader {
         NodeList children = element.getChildNodes();
         for (int i = 0; i < children.getLength(); i++) {
             Node child = children.item(i);
-            System.out.println("CHILD TYPE " + child.getNodeType() + ", " + child.getNodeName() + ", " + child.getNodeValue());
             if (child.getNodeType() == Node.ELEMENT_NODE && "complexType".equals(child.getNodeName())) {
                 processComplexType(processedParent, element, child);
+            } else if (child.getNodeType() == Node.ELEMENT_NODE && "simpleType".equals(child.getNodeName())) {
+                processSimpleType(processedParent, child);
             }
+        }
+    }
+
+    private void processSimpleType(SchemaItem processedParent, Node simpleTypeNode) {
+        NodeList children = simpleTypeNode.getChildNodes();
+        for (int i = 0; i < children.getLength(); i++) {
+            Node child = children.item(i);
+            if (child.getNodeType() == Node.ELEMENT_NODE && "restriction".equals(child.getNodeName())) {
+                processTypeRestriction(processedParent, child);
+            }
+        }
+    }
+
+    private void processTypeRestriction(SchemaItem processedParent, Node restrictionNode) {
+        NamedNodeMap attrs = restrictionNode.getAttributes();
+        if (attrs == null) {
+            return;
+        }
+
+        String baseType = getAttributeValue(attrs, "base");
+        if (baseType != null && !baseType.isEmpty()) {
+            setTypes(processedParent, baseType);
         }
     }
 
@@ -219,7 +253,6 @@ public class XSDLoader {
         NodeList children = complexTypeChild.getChildNodes();
         for (int i = 0; i < children.getLength(); i++) {
             Node child = children.item(i);
-            System.out.println("ComplexType child: " + child.getNodeType() + ", " + child.getNodeName() + ", " + child.getNodeValue());
             if (child.getNodeType() == Node.ELEMENT_NODE && "sequence".equals(child.getNodeName())) {
                 processSequence(processedParent, element, child);
             } else if (child.getNodeType() == Node.ELEMENT_NODE && "attribute".equals(child.getNodeName())) {
@@ -251,10 +284,7 @@ public class XSDLoader {
         }
 
         String baseType = getAttributeValue(attrs, "base");
-        SchemaItem.Type openapiType = getOpenapiType(baseType);
-        if (openapiType != null) {
-            processedParent.setType(openapiType);
-        }
+        setTypes(processedParent, baseType);
         return true;
     }
 
@@ -273,12 +303,13 @@ public class XSDLoader {
         NodeList sequenceChildren = sequence.getChildNodes();
         for (int i = 0; i < sequenceChildren.getLength(); i++) {
             Node child = sequenceChildren.item(i);
-            System.out.println("SEQUENCE CHILD: " + child.getNodeType() + ", " + child.getNodeName() + ", " + child.getNodeValue());
-            SchemaItem processedElement = processElement(child);
-            if (processedElement != null) {
-                processedParent.addChild(processedElement);
-                if (processedParent.getType() == SchemaItem.Type.undefined) {
-                    processedParent.setType(SchemaItem.Type.objectType);
+            if (child.getNodeType() == Node.ELEMENT_NODE && "element".equals(child.getNodeName())) {
+                SchemaItem processedElement = processElement(child);
+                if (processedElement != null) {
+                    processedParent.addChild(processedElement);
+                    if (processedParent.getType() == SchemaItem.Type.undefined) {
+                        processedParent.setType(SchemaItem.Type.objectType);
+                    }
                 }
             }
         }
