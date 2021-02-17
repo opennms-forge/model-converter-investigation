@@ -3,7 +3,7 @@ package org.opennms.configengine;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.opennms.configengine.types.GenericDataConverter;
+import org.opennms.configengine.store.GenericDataConverter;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.web.servlet.support.SpringBootServletInitializer;

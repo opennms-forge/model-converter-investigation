@@ -1,4 +1,4 @@
-package org.opennms.configengine.types;
+package org.opennms.configengine.store;
 
 import java.io.IOException;
 import java.io.StringReader;
@@ -32,8 +32,8 @@ public class JSONStore {
 	public JSONStore() {
 	}
 		
-	public String setService(String servicename, Map<String, Map> config) throws ModelException {
-		rootmap.put(servicename, config);
+	public String setService(String servicename, Map<String, Object> mappedJson) throws ModelException {
+		rootmap.put(servicename, mappedJson);
 		return "";
 	}
 	

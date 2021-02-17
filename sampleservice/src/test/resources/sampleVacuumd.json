@@ -1,0 +1,64 @@
+{
+	"statements": [
+		"some string",
+		"another statement"
+	],
+	"automations": [
+		{
+			"name": "auto1",
+			"interval": 30,
+			"trigger-name": "trig1",
+			"action-name": "action1",
+			"auto-event-name": "autoevent1",
+			"action-event": "actionevent1",
+			"active": true
+		},
+		{
+			"name": "auto2",
+			"interval": 15,
+			"trigger-name": "trig21",
+			"action-name": "action2",
+			"auto-event-name": "autoevent2",
+			"action-event": "actionevent2",
+			"active": true
+		}
+	],
+	"triggers": [
+		{
+			"statement": "Some statement",
+			"name": "trig1",
+			"data-source": "source1",
+			"operator": "op1",
+			"row-count": 50
+		}
+	],
+	"actions": [
+		{
+			"statement": "Some statement",
+			"name": "action1",
+			"data-source": "source1"
+		}
+	],
+	"auto-events": [
+		{
+			"uei": "uei1",
+			"name": "autoevent1",
+			"fields": "f1f2f3"
+		}
+	],
+	"action-events": [
+		{
+			"assignments": [
+				{
+					"type": "type1",
+					"name": "assign1",
+					"value": "SomeValue"
+				}
+			],
+			"name": "actionevent1",
+			"for-each-result": false,
+			"add-all-parms": false
+		}
+	],
+	"period": 30
+}

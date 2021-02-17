@@ -1,4 +1,4 @@
-package org.opennms.configengine.types;
+package org.opennms.configengine.store;
 
 import java.io.IOException;
 import java.io.StringReader;

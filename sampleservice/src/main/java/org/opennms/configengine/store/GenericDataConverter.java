@@ -1,4 +1,4 @@
-package org.opennms.configengine.types;
+package org.opennms.configengine.store;
 
 import java.util.ArrayList;
 import java.util.List;

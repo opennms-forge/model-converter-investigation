@@ -1,0 +1,154 @@
+{
+	"info": {
+		"_postman_id": "cc8a103c-d3e4-44dc-9f3d-25c189e4e654",
+		"name": "VacuumdService-REST",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Post Vacuumd Service Schema",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"openapi\": \"3.0.3\",\r\n  \"info\": {\r\n    \"description\": \"OpenNMS Vacuumd Data Model\",\r\n    \"version\": \"1.0.0\",\r\n    \"title\": \"OpenNMS Model\"\r\n  },\r\n  \"paths\": {\r\n    \"/vacuumd\": {\r\n      \"post\": {\r\n        \"tags\": [\r\n          \"Vacuumd\"\r\n        ],\r\n        \"summary\": \"Configure vacuumd\",\r\n        \"requestBody\": {\r\n          \"content\": {\r\n            \"application/json\": {\r\n              \"schema\": {\r\n                \"$ref\": \"#/components/schemas/VacuumdConfiguration\"\r\n              },\r\n              \"example\": {\r\n                \"id\": 10,\r\n                \"name\": \"Some example\"\r\n              }\r\n            }\r\n          }\r\n        },\r\n        \"responses\": {\r\n          \"200\": {\r\n            \"description\": \"OK\"\r\n          }\r\n        }\r\n      }\r\n    },\r\n    \"/vacuumd/automations\": {\r\n      \"post\": {\r\n        \"tags\": [\r\n          \"Vacuumd\"\r\n        ],\r\n        \"summary\": \"Configure vacuumd automations\",\r\n        \"requestBody\": {\r\n          \"content\": {\r\n            \"application/json\": {\r\n              \"schema\": {\r\n                \"$ref\": \"#/components/schemas/automation\"\r\n              },\r\n              \"example\": {\r\n                \"name\": \"auto1\",\r\n                \"interval\": 30,\r\n                \"trigger-name\": \"trig1\",\r\n                \"action-name\": \"action1\",\r\n                \"auto-event-name\": \"autoevent1\",\r\n                \"action-event\": \"actionevent1\",\r\n                \"active\": false\r\n              }\r\n            }\r\n          }\r\n        },\r\n        \"responses\": {\r\n          \"200\": {\r\n            \"description\": \"OK\"\r\n          }\r\n        }\r\n      }\r\n    }\r\n  },\r\n  \"servers\": [\r\n    {\r\n      \"url\": \"http://localhost:8080/configuration/services\"\r\n    }\r\n  ],\r\n  \"components\": {\r\n    \"schemas\": {\r\n      \"VacuumdConfiguration\": {\r\n        \"type\": \"object\",\r\n        \"properties\": {\r\n          \"statements\": {\r\n            \"type\": \"array\",\r\n            \"items\": {\r\n              \"$ref\": \"#/components/schemas/statement\"\r\n            }\r\n          },\r\n          \"automations\": {\r\n            \"type\": \"array\",\r\n            \"items\": {\r\n              \"$ref\": \"#/components/schemas/automation\"\r\n            }\r\n          },\r\n          \"triggers\": {\r\n            \"type\": \"array\",\r\n            \"items\": {\r\n              \"$ref\": \"#/components/schemas/trigger\"\r\n            }\r\n          },\r\n          \"actions\": {\r\n            \"type\": \"array\",\r\n            \"items\": {\r\n              \"$ref\": \"#/components/schemas/action\"\r\n            }\r\n          },\r\n          \"auto-events\": {\r\n            \"type\": \"array\",\r\n            \"items\": {\r\n              \"$ref\": \"#/components/schemas/auto-event\"\r\n            }\r\n          },\r\n          \"action-events\": {\r\n            \"type\": \"array\",\r\n            \"items\": {\r\n              \"$ref\": \"#/components/schemas/action-event\"\r\n            }\r\n          },\r\n          \"period\": {\r\n            \"type\": \"integer\"\r\n          }\r\n        }\r\n      },\r\n      \"automation\": {\r\n        \"type\": \"object\",\r\n        \"properties\": {\r\n          \"name\": {\r\n            \"type\": \"string\"\r\n          },\r\n          \"interval\": {\r\n            \"type\": \"integer\",\r\n            \"maximum\": 60,\r\n            \"minimum\": 0\r\n          },\r\n          \"trigger-name\": {\r\n            \"type\": \"string\"\r\n          },\r\n          \"action-name\": {\r\n            \"type\": \"string\"\r\n          },\r\n          \"auto-event-name\": {\r\n            \"type\": \"string\"\r\n          },\r\n          \"action-event\": {\r\n            \"type\": \"string\"\r\n          },\r\n          \"active\": {\r\n            \"type\": \"boolean\"\r\n          }\r\n        }\r\n      },\r\n      \"trigger\": {\r\n        \"type\": \"object\",\r\n        \"properties\": {\r\n          \"statement\": {\r\n            \"$ref\": \"#/components/schemas/statement\"\r\n          },\r\n          \"name\": {\r\n            \"type\": \"string\"\r\n          },\r\n          \"data-source\": {\r\n            \"type\": \"string\"\r\n          },\r\n          \"operator\": {\r\n            \"type\": \"string\"\r\n          },\r\n          \"row-count\": {\r\n            \"type\": \"integer\"\r\n          }\r\n        }\r\n      },\r\n      \"action\": {\r\n        \"type\": \"object\",\r\n        \"properties\": {\r\n          \"statement\": {\r\n            \"$ref\": \"#/components/schemas/statement\"\r\n          },\r\n          \"name\": {\r\n            \"type\": \"string\"\r\n          },\r\n          \"data-source\": {\r\n            \"type\": \"string\"\r\n          }\r\n        }\r\n      },\r\n      \"auto-event\": {\r\n        \"type\": \"object\",\r\n        \"properties\": {\r\n          \"uei\": {\r\n            \"$ref\": \"#/components/schemas/uei\"\r\n          },\r\n          \"name\": {\r\n            \"type\": \"string\"\r\n          },\r\n          \"fields\": {\r\n            \"type\": \"string\"\r\n          }\r\n        }\r\n      },\r\n      \"uei\": {\r\n        \"type\": \"string\"\r\n      },\r\n      \"action-event\": {\r\n        \"type\": \"object\",\r\n        \"properties\": {\r\n          \"assignments\": {\r\n            \"type\": \"array\",\r\n            \"items\": {\r\n              \"$ref\": \"#/components/schemas/assignment\"\r\n            }\r\n          },\r\n          \"name\": {\r\n            \"type\": \"string\"\r\n          },\r\n          \"for-each-result\": {\r\n            \"type\": \"boolean\"\r\n          },\r\n          \"add-all-parms\": {\r\n            \"type\": \"boolean\"\r\n          }\r\n        }\r\n      },\r\n      \"assignment\": {\r\n        \"type\": \"object\",\r\n        \"properties\": {\r\n          \"type\": {\r\n            \"type\": \"string\"\r\n          },\r\n          \"name\": {\r\n            \"type\": \"string\"\r\n          },\r\n          \"value\": {\r\n            \"type\": \"string\"\r\n          }\r\n        }\r\n      },\r\n      \"statement\": {\r\n        \"type\": \"string\"\r\n      }\r\n    }\r\n  }\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8080/configuration/schemas/vacuumd",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"configuration",
+						"schemas",
+						"vacuumd"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get list of configured services",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8080/configuration/services",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"configuration",
+						"services"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Vacuumd config",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8080/configuration/services/vacuumd",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"configuration",
+						"services",
+						"vacuumd"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Post full Vacuumd Config",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n\t\"statements\": [\r\n\t\t\"some string\",\r\n\t\t\"another statement\"\r\n\t],\r\n\t\"automations\": [\r\n\t\t{\r\n\t\t\t\"name\": \"auto1\",\r\n\t\t\t\"interval\": 30,\r\n\t\t\t\"trigger-name\": \"trig1\",\r\n\t\t\t\"action-name\": \"action1\",\r\n\t\t\t\"auto-event-name\": \"autoevent1\",\r\n\t\t\t\"action-event\": \"actionevent1\",\r\n\t\t\t\"active\": true\r\n\t\t},\r\n\t\t{\r\n\t\t\t\"name\": \"auto2\",\r\n\t\t\t\"interval\": 15,\r\n\t\t\t\"trigger-name\": \"trig21\",\r\n\t\t\t\"action-name\": \"action2\",\r\n\t\t\t\"auto-event-name\": \"autoevent2\",\r\n\t\t\t\"action-event\": \"actionevent2\",\r\n\t\t\t\"active\": true\r\n\t\t}\r\n\t],\r\n\t\"triggers\": [\r\n\t\t{\r\n\t\t\t\"statement\": \"Some statement\",\r\n\t\t\t\"name\": \"trig1\",\r\n\t\t\t\"data-source\": \"source1\",\r\n\t\t\t\"operator\": \"op1\",\r\n\t\t\t\"row-count\": 50\r\n\t\t}\r\n\t],\r\n\t\"actions\": [\r\n\t\t{\r\n\t\t\t\"statement\": \"Some statement\",\r\n\t\t\t\"name\": \"action1\",\r\n\t\t\t\"data-source\": \"source1\"\r\n\t\t}\r\n\t],\r\n\t\"auto-events\": [\r\n\t\t{\r\n\t\t\t\"uei\": \"uei1\",\r\n\t\t\t\"name\": \"autoevent1\",\r\n\t\t\t\"fields\": \"f1f2f3\"\r\n\t\t}\r\n\t],\r\n\t\"action-events\": [\r\n\t\t{\r\n\t\t\t\"assignments\": [\r\n\t\t\t\t{\r\n\t\t\t\t\t\"type\": \"type1\",\r\n\t\t\t\t\t\"name\": \"assign1\",\r\n\t\t\t\t\t\"value\": \"SomeValue\"\r\n\t\t\t\t}\r\n\t\t\t],\r\n\t\t\t\"name\": \"actionevent1\",\r\n\t\t\t\"for-each-result\": false,\r\n\t\t\t\"add-all-parms\": false\r\n\t\t}\r\n\t],\r\n\t\"period\": 30\r\n}\r\n",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8080/configuration/services/vacuumd/",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"configuration",
+						"services",
+						"vacuumd",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Update vacuumd automations",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"name\": \"auto3\",\r\n    \"interval\": 30,\r\n    \"trigger-name\": \"trig2\",\r\n    \"action-name\": \"action2\",\r\n    \"auto-event-name\": \"autoevent2\",\r\n    \"action-event\": \"act-event2\",\r\n    \"active\": true\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8080/configuration/services/vacuumd/automations",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"configuration",
+						"services",
+						"vacuumd",
+						"automations"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
