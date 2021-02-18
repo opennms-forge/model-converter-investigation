@@ -103,6 +103,7 @@ public class ConfigController {
 			return "Invalid request";
 		}
 
+		System.out.println("Validated");
 		try {
 			ObjectMapper mapper = new ObjectMapper();
 			Map<String, Object> mappedJson = mapper.readValue(json, new TypeReference<Map<String, Object>>(){});

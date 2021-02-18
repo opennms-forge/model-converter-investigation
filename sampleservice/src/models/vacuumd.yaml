@@ -1,0 +1,152 @@
+openapi: 3.0.3
+info:
+  description: OpenNMS Vacuumd Data Model
+  version: 1.0.0
+  title: OpenNMS Model
+paths:
+  /vacuumd:
+    post:
+      tags:
+        - Vacuumd
+      summary: Configure vacuumd
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VacuumdConfiguration'
+            example:
+              id: 10
+              name: Some example
+      responses:
+        '200':
+          description: OK
+  /vacuumd/automations:
+    post:
+      tags:
+        - Vacuumd
+      summary: Configure vacuumd automations
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/automation"
+            example:
+              name: auto1
+              interval: 30
+              trigger-name: trig1
+              action-name: action1
+              auto-event-name: autoevent1
+              action-event: actionevent1
+              active: false
+      responses:
+        '200':
+          description: OK
+servers:
+  - url: http://localhost:8080/configuration/services
+components:
+  schemas:
+    VacuumdConfiguration:
+      type: object
+      properties:
+        statements:
+          type: array
+          items:
+            $ref: '#/components/schemas/statement'
+        automations:
+          type: array
+          items:
+            $ref: '#/components/schemas/automation'
+        triggers:
+          type: array
+          items:
+            $ref: '#/components/schemas/trigger'
+        actions:
+          type: array
+          items:
+            $ref: '#/components/schemas/action'
+        auto-events:
+          type: array
+          items:
+            $ref: '#/components/schemas/auto-event'
+        action-events:
+          type: array
+          items:
+            $ref: '#/components/schemas/action-event'
+        period:
+          type: integer
+    automation:
+      type: object
+      properties:
+        name:
+          type: string
+        interval:
+          type: integer
+          maximum: 60
+          minimum: 0
+        trigger-name:
+          type: string
+        action-name:
+          type: string
+        auto-event-name:
+          type: string
+        action-event:
+          type: string
+        active:
+          type: boolean
+    trigger:
+      type: object
+      properties:
+        statement:
+          $ref: '#/components/schemas/statement'
+        name:
+          type: string
+        data-source:
+          type: string
+        operator:
+          type: string
+        row-count:
+          type: integer
+    action:
+      type: object
+      properties:
+        statement:
+          $ref: '#/components/schemas/statement'
+        name:
+          type: string
+        data-source:
+          type: string
+    auto-event:
+      type: object
+      properties:
+        uei:
+          $ref: '#/components/schemas/uei'
+        name:
+          type: string
+        fields:
+          type: string
+    uei:
+      type: string
+    action-event:
+      type: object
+      properties:
+        assignments:
+          type: array
+          items:
+            $ref: '#/components/schemas/assignment'
+        name:
+          type: string
+        for-each-result:
+          type: boolean
+        add-all-parms:
+          type: boolean
+    assignment:
+      type: object
+      properties:
+        type:
+          type: string
+        name:
+          type: string
+        value:
+          type: string
+    statement:
+      type: string

@@ -15,7 +15,7 @@ public class XSDLoader {
     public XSDLoader() {
     }
 
-    public SchemaHolder loadXSD(File schemaFile) {
+    public SchemaHolder loadXSD(String serviceName, File schemaFile) {
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
         DocumentBuilder builder = null;
         try {
@@ -25,7 +25,7 @@ public class XSDLoader {
             Document doc = builder.parse(schemaFile);
 
             Element docElement = doc.getDocumentElement();
-            SchemaHolder processedSchema = new SchemaHolder();
+            SchemaHolder processedSchema = new SchemaHolder(serviceName);
             processTopLevelNodes(docElement.getChildNodes(), processedSchema);
             return processedSchema;
         } catch (ParserConfigurationException e) {
@@ -40,14 +40,22 @@ public class XSDLoader {
 
     private void processTopLevelNodes(NodeList childNodes, SchemaHolder processedSchema) {
         int nodes = childNodes.getLength();
+        
+        //  Using the first top level element as the 'root' of the schema - won't work for all cases
+        boolean foundRoot = false;
+        
         int index = 0;
         while (index < nodes) {
             Node node = childNodes.item(index);
             if (node.getNodeType() == Node.ELEMENT_NODE) {
                 // Handle the element type
                 if (node.getNodeName().equals("element")) {
-                    SchemaItem element = processElement(node);
+                    SchemaItem element = processElement(node, "");
                     if (element != null) {
+                        if (! foundRoot) {
+                        	foundRoot = true;
+                        	processedSchema.setRootElement(element);
+                        }
                         processedSchema.addChild(element);
                     }
                 }
@@ -56,7 +64,7 @@ public class XSDLoader {
         }
     }
 
-    private SchemaItem processElement(Node element) {
+    private SchemaItem processElement(Node element, String schemaPath) {
         // Get the element's attributes (i.e. name)
         NamedNodeMap attrs = element.getAttributes();
         if (attrs == null) {
@@ -78,8 +86,12 @@ public class XSDLoader {
             reference = convertReference(rawReference);
             name = nameFromReference(rawReference);
         }
-
+        if (!name.isEmpty()) {
+        	schemaPath += name;
+        }
+        
         SchemaItem processedElement = new SchemaItem(name);
+        processedElement.setSchemaPath(schemaPath);
         setItemType(processedElement, attrs); // Sets max/min also
 
         if (reference != null) {
@@ -87,45 +99,8 @@ public class XSDLoader {
         }
 
         // Now go through and find any children
-        processChildren(processedElement, element);
+        processChildren(processedElement, element, schemaPath + "/properties/" );
         return processedElement;
-        //outputItem(level, name + ":");
-
-            /*
-            if (refAttr != null) {
-                // If it is an array, the format is a little different than a single element
-                if (maxOccurs == 1) {
-                    outputItem(level + 1, "$ref: \"" + reference + "\"");
-                } else {
-                    outputItem(level + 1, "type: array");
-                    outputItem(level + 1, "items:");
-                    outputItem(level + 2, "$ref: \"" + reference + "\"");
-                }
-                return;
-            }
-
-
-            ++level; // All subsequent items indented from this parent
-
-            Node typeContainer = getInterestingElementType(element);
-            if (typeContainer != null) {
-                if ("complexType".equals(typeContainer.getNodeName())) {
-                    // Maps to an object type
-                    outputItem(level, "type: object");
-
-                    // The complexType can hold a bunch of attributes. Map them as if they were child elements in a sequence
-                    processComplexTypeAttributes(level, typeContainer);
-
-                    // If it contains a sequence of children, they go under a properties tag
-                    Node complexTypeChild = getComplexTypeChildContainer(typeContainer);
-                    if (complexTypeChild != null) {
-                        if ("sequence".equals(complexTypeChild.getNodeName())) {
-                            outputItem(level, "properties:");
-                            processNodes(complexTypeChild.getChildNodes(), level + 1);
-                        }
-                    }
-                }
-            }*/
     }
 
     private void setItemType(SchemaItem processedElement, NamedNodeMap attrs) {
@@ -213,13 +188,13 @@ public class XSDLoader {
 
     }
 
-    private void processChildren(SchemaItem processedParent, Node element) {
+    private void processChildren(SchemaItem processedParent, Node element, String schemaPath) {
         // Different places for processing children: attributes (mapping as if elements), complexType
         NodeList children = element.getChildNodes();
         for (int i = 0; i < children.getLength(); i++) {
             Node child = children.item(i);
             if (child.getNodeType() == Node.ELEMENT_NODE && "complexType".equals(child.getNodeName())) {
-                processComplexType(processedParent, element, child);
+                processComplexType(processedParent, element, child, schemaPath);
             } else if (child.getNodeType() == Node.ELEMENT_NODE && "simpleType".equals(child.getNodeName())) {
                 processSimpleType(processedParent, child);
             }
@@ -248,15 +223,16 @@ public class XSDLoader {
         }
     }
 
-    private void processComplexType(SchemaItem processedParent, Node element, Node complexTypeChild) {
+    private void processComplexType(SchemaItem processedParent, Node element, Node complexTypeChild,
+    		String schemaPath) {
         // Complex type can have several different things in it, including attributes
         NodeList children = complexTypeChild.getChildNodes();
         for (int i = 0; i < children.getLength(); i++) {
             Node child = children.item(i);
             if (child.getNodeType() == Node.ELEMENT_NODE && "sequence".equals(child.getNodeName())) {
-                processSequence(processedParent, element, child);
+                processSequence(processedParent, element, child, schemaPath);
             } else if (child.getNodeType() == Node.ELEMENT_NODE && "attribute".equals(child.getNodeName())) {
-                processAttribute(processedParent, element, child);
+                processAttribute(processedParent, element, child, schemaPath);
             } else if (child.getNodeType() == Node.ELEMENT_NODE && "simpleContent".equals(child.getNodeName())) {
                 processSimpleContent(processedParent, child);
             }
@@ -288,9 +264,9 @@ public class XSDLoader {
         return true;
     }
 
-    private void processAttribute(SchemaItem processedParent, Node parentNode, Node attributeNode) {
+    private void processAttribute(SchemaItem processedParent, Node parentNode, Node attributeNode, String schemaPath) {
         // Handle the same as an element for now. Name will be the same - other stuff will differ
-        SchemaItem processedAttribute = processElement(attributeNode);
+        SchemaItem processedAttribute = processElement(attributeNode, schemaPath);
         if (processedAttribute != null) {
             processedParent.addChild(processedAttribute);
             if (processedParent.getType() == SchemaItem.Type.undefined) {
@@ -299,12 +275,12 @@ public class XSDLoader {
         }
     }
 
-    private void processSequence(SchemaItem processedParent, Node element, Node sequence) {
+    private void processSequence(SchemaItem processedParent, Node element, Node sequence, String schemaPath) {
         NodeList sequenceChildren = sequence.getChildNodes();
         for (int i = 0; i < sequenceChildren.getLength(); i++) {
             Node child = sequenceChildren.item(i);
             if (child.getNodeType() == Node.ELEMENT_NODE && "element".equals(child.getNodeName())) {
-                SchemaItem processedElement = processElement(child);
+                SchemaItem processedElement = processElement(child, schemaPath);
                 if (processedElement != null) {
                     processedParent.addChild(processedElement);
                     if (processedParent.getType() == SchemaItem.Type.undefined) {

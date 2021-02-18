@@ -1,10 +1,11 @@
 package org.opennms.xsdconverter.openapi;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 
 public class SchemaItem {
     String name;
-
+    String componentPath;
 
     public enum Type {
         undefined,
@@ -135,7 +136,7 @@ public class SchemaItem {
     }
 
     public void generateYamlSchema(SchemaWriter writer, int level) {
-        writer.writeentry(level, "\"" + name + "\": {");
+        writer.writeentry(level, name + ":");
         if ((type != Type.undefined) && (type != Type.reference)) {
             writer.writeentry(level + 1, "type: " + getOpenapiTypeName());
             if (format != null && !format.isEmpty()) {
@@ -162,4 +163,69 @@ public class SchemaItem {
         }
     }
 
+	public void generateYamlEndpoints(SchemaWriter writer, int level, String url, ArrayList<SchemaItem> topSchemas) {
+        if (type == Type.reference) {
+        	SchemaItem refItem = findReference(topSchemas);
+        	if (refItem != null) {
+        		refItem.generateYamlEndpoints(writer, level, url, topSchemas);
+        	}
+        } else {
+			url += "/" + name;
+			// TODO Auto-generated method stub
+			writer.writeentry(level, url + ":");
+			// POST
+			writer.writeentry(level + 1,  "post:");
+			writer.writeentry(level + 2,  "tags:");
+			writer.writeentry(level + 3,  "- " + name);
+			writer.writeentry(level + 2,  "summary: " + "Configure " + name);
+			writer.writeentry(level + 2,  "requestBody:");
+			writer.writeentry(level + 3,  "content:");
+			writer.writeentry(level + 4,  "application/json:");
+			writer.writeentry(level + 5,  "schema:");
+			writer.writeentry(level + 6,  "$ref: \"#/components/schemas/" + componentPath + "\"");
+			writer.writeentry(level + 5,  "example:");
+			writer.writeentry(level + 2, "responses:");
+			writer.writeentry(level + 3,  "'200':");
+			writer.writeentry(level + 4,  "description: OK");
+			// GET
+			writer.writeentry(level + 1,  "get:");
+			writer.writeentry(level + 2,  "tags:");
+			writer.writeentry(level + 3,  "- " + name);
+			writer.writeentry(level + 2,  "summary: " + "Get " + name + " configuration");
+			writer.writeentry(level + 2,  "responses:");
+			writer.writeentry(level + 3,  "200:");
+			writer.writeentry(level + 4,  "description: " + name + " configuration");
+			writer.writeentry(level + 4,  "content:");
+			writer.writeentry(level + 5,  "application/json:");
+			writer.writeentry(level + 6,  "schema:");
+			writer.writeentry(level + 7,  "$ref: \"#/components/schemas/" + componentPath + "\"");
+			writer.writeentry(level + 6,  "example:");
+	
+			// Now go through all child elements for their endpoints
+	        for (int i = 0; i < children.size(); i++) {
+	            SchemaItem schemaItem = children.get(i);
+	            schemaItem.generateYamlEndpoints(writer, level, url, topSchemas);
+	        }
+        }
+	}
+
+	private SchemaItem findReference(ArrayList<SchemaItem> topSchemas) {
+		String refName = reference.replace("#/components/schemas/", "");
+		Iterator<SchemaItem> it = topSchemas.iterator();
+		while (it.hasNext()) {
+			SchemaItem item = it.next();
+			if (item.isReference(refName)) {
+				return item;
+			}
+		}
+		return null;
+	}
+
+	private boolean isReference(String refName) {
+		return name.equals(refName);
+	}
+
+	public void setSchemaPath(String schemaPath) {
+		componentPath = schemaPath;
+	}
 }

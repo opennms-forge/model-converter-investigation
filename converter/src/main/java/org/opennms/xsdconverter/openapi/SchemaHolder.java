@@ -5,8 +5,11 @@ import java.util.Iterator;
 
 public class SchemaHolder {
     ArrayList<SchemaItem> schemaItems = new ArrayList<>();
+    String servName;
+    SchemaItem rootItem = null;
 
-    public SchemaHolder() {
+    public SchemaHolder(String serviceName) {
+    	servName = serviceName;
     }
 
     public void addChild(SchemaItem schemaItem) {
@@ -35,7 +38,30 @@ public class SchemaHolder {
     }
 
     public String generateYamlOpenapiDefinitions() {
-        SchemaWriter writer = new SchemaWriter(false);
+		SchemaWriter writer = new SchemaWriter(false);
+
+		generateYamlInfo(writer);
+		generateYamlEndpoints(writer);
+        generateYamlOpenApiComponents(writer);
+        return writer.getResult();
+    }
+
+	private void generateYamlInfo(SchemaWriter writer) {
+		writer.writeentry(0,  "openapi: 3.0.3");
+		writer.writeentry(0, "info:");
+		writer.writeentry(1, "description: OpenNMS Data Model");
+		writer.writeentry(1, "version: 1.0.0");
+		writer.writeentry(1, "title: OpenNMS " + servName + " Model");
+	}
+
+	private void generateYamlEndpoints(SchemaWriter writer) {
+		writer.writeentry(0,  "paths:");
+		
+		// Write out the root element, then let it traverse for all underneath it
+		rootItem.generateYamlEndpoints(writer, 1, "/" + servName, schemaItems);
+	}
+
+	private void generateYamlOpenApiComponents(SchemaWriter writer) {
         writer.writeentry(0, "components:");
         writer.writeentry(1, "schemas:");
 
@@ -44,11 +70,10 @@ public class SchemaHolder {
             SchemaItem schemaItem = iterator.next();
             schemaItem.generateYamlSchema(writer, 2);
         }
+	}
 
-        writer.writeentry(1, "}");
-        writer.writeentry(0, "}");
-
-        return writer.getResult();
-    }
+	public void setRootElement(SchemaItem element) {
+		rootItem = element;
+	}
 
 }

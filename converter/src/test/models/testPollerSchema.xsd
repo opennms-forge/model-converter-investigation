@@ -187,7 +187,7 @@
 
       <attribute name="class-name" type="string" use="required">
         <annotation>
-          <documentation>Java cass used to monitor/poll the service. The class
+          <documentation>Java class used to monitor/poll the service. The class
           must implement the org.opennms.netmgt.poller.monitors.ServiceMonitor
           interface.</documentation>
         </annotation>

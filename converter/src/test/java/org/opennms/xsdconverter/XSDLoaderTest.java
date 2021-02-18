@@ -10,14 +10,14 @@ public class XSDLoaderTest {
     @Test
     public void testProcessVacuumd() {
         XSDLoader loader = new XSDLoader();
-        SchemaHolder processedSchema = loader.loadXSD(new File("src/test/models/testVacuumdSchema.xsd"));
-        System.out.println("Result:\n" + processedSchema.generateJSONOpenapiDefinitions());
+        SchemaHolder processedSchema = loader.loadXSD("vacuumd", new File("src/test/models/testVacuumdSchema.xsd"));
+        System.out.println(processedSchema.generateYamlOpenapiDefinitions());
     }
 
     @Test
     public void testProcessPoller() {
         XSDLoader loader = new XSDLoader();
-        SchemaHolder processedSchema = loader.loadXSD(new File("src/test/models/testPollerSchema.xsd"));
+        SchemaHolder processedSchema = loader.loadXSD("poller", new File("src/test/models/testPollerSchema.xsd"));
         System.out.println("Result:\n" + processedSchema.generateJSONOpenapiDefinitions());
     }
 
