@@ -9,7 +9,6 @@ public class SchemaItem {
 
     public enum Type {
         undefined,
-        reference, // References can also be arrays
         objectType,
         arrayType,
         stringType,
@@ -18,6 +17,7 @@ public class SchemaItem {
         booleanType
     }
     Type type = Type.undefined;
+    boolean referenceType = false; // Can be combined with an object or array type
 
     String format = ""; // Optional free-form in openapi spec
 
@@ -71,7 +71,11 @@ public class SchemaItem {
 
     public void setReference(String reference) {
         this.reference = reference;
-        this.type = Type.reference;
+        // If no type, then default for object with a reference
+        if (this.type == Type.undefined) {
+        	this.type = Type.objectType;
+        }
+        this.referenceType = true;
     }
 
     public int getArrayMax() {
@@ -91,8 +95,10 @@ public class SchemaItem {
     }
 
     private String getOpenapiTypeName() {
+    	if (referenceType) {
+    		return null;
+    	}
         switch (type) {
-            case reference: return null;
             case objectType: return "object";
             case arrayType: return "array";
             case stringType: return "string";
@@ -106,14 +112,14 @@ public class SchemaItem {
 
     public void generateJSONSchema(SchemaWriter writer, int level) {
         writer.writeentry(level, "\"" + name + "\": {");
-        if ((type != Type.undefined) && (type != Type.reference)) {
+        if ((type != Type.undefined) && (! referenceType)) {
             writer.writeentry(level + 1, "\"type\": \"" + getOpenapiTypeName() + "\"");
             if (format != null && !format.isEmpty()) {
                 writer.writeentry(level + 1, "\"format\": " + format);
             }
         }
 
-        if (type == Type.reference) {
+        if (referenceType) {
             if (arrayMax == 1) {
                 writer.writeentry(level + 1, "\"$ref\": \"" + reference + "\"");
             } else {
@@ -137,14 +143,14 @@ public class SchemaItem {
 
     public void generateYamlSchema(SchemaWriter writer, int level) {
         writer.writeentry(level, name + ":");
-        if ((type != Type.undefined) && (type != Type.reference)) {
+        if ((type != Type.undefined) && (!referenceType)) {
             writer.writeentry(level + 1, "type: " + getOpenapiTypeName());
             if (format != null && !format.isEmpty()) {
                 writer.writeentry(level + 1, "format: " + format);
             }
         }
 
-        if (type == Type.reference) {
+        if (referenceType) {
             if (arrayMax == 1) {
                 writer.writeentry(level + 1, "$ref: '" + reference + "'");
             } else {
@@ -163,49 +169,157 @@ public class SchemaItem {
         }
     }
 
-	public void generateYamlEndpoints(SchemaWriter writer, int level, String url, ArrayList<SchemaItem> topSchemas) {
-        if (type == Type.reference) {
-        	SchemaItem refItem = findReference(topSchemas);
-        	if (refItem != null) {
-        		refItem.generateYamlEndpoints(writer, level, url, topSchemas);
-        	}
-        } else {
-			url += "/" + name;
+	public void generateYamlEndpoints(SchemaWriter writer, int level, String url,
+					ArrayList<SchemaItem> topSchemas, boolean parentArray,
+					SchemaResultHolder parentParams, boolean rootElement,
+					String tagName) {
+        boolean isArray = (type == Type.arrayType);
+        String schemaType;
+        if (rootElement) {
+        	tagName = name;
+        }
+		if (parentArray) {
+			// Need to add the info for the parameter in the url
+			parentParams.addLine(0,  "- in: path");
+			parentParams.addLine(1,  "name: " + name + "Index");
+			parentParams.addLine(1,  "schema:");
+			parentParams.addLine(2,  "type: integer");
+			parentParams.addLine(1,  "required: true");
+			parentParams.addLine(1,  "description: Index of item in the array");
+		}
+
+		if (!referenceType || isArray) {
+			// If the parent is an array, then we use an index for our level of the url instead of the name
+			if (!rootElement) {
+				// Don't add the name of the root element into the url
+				if (parentArray) {
+					url += "/{" + name + "Index}";  // assuming all name indexes will be unique - probably not valid
+				} else {
+					url += "/" + name;
+				}
+			}
 			// TODO Auto-generated method stub
-			writer.writeentry(level, url + ":");
-			// POST
-			writer.writeentry(level + 1,  "post:");
+			writer.writeentry(level, url + ":");			
+					
+			if (!parentArray) {
+				// POST
+				writer.writeentry(level + 1,  "post:");
+				writer.writeentry(level + 2,  "tags:");
+				writer.writeentry(level + 3,  "- " + tagName);
+				writer.writeentry(level + 2,  "summary: " + "Configure " + name);
+				if (!parentParams.isEmpty()) {
+					writer.writeentry(level + 2,  "parameters:");
+					parentParams.writeLines(writer, level + 3);
+				}
+				writer.writeentry(level + 2,  "requestBody:");
+				writer.writeentry(level + 3,  "content:");
+				writer.writeentry(level + 4,  "application/json:");
+				writer.writeentry(level + 5,  "schema:");
+				//if (isArray) {
+				//	writer.writeentry(level + 6,  "type: array");
+				//	writer.writeentry(level + 6,  "items:");
+				//	writer.writeentry(level + 7,  "$ref: \"#/components/schemas/" + componentPath + "\"");
+				//} else {
+					writer.writeentry(level + 6,  "$ref: \"#/components/schemas/" + componentPath + "\"");
+				//}
+				writer.writeentry(level + 5,  "example:");
+				writer.writeentry(level + 2, "responses:");
+				writer.writeentry(level + 3,  "'200':");
+				writer.writeentry(level + 4,  "description: OK");
+			}
+			
+			// PUT
+			writer.writeentry(level + 1,  "put:");
 			writer.writeentry(level + 2,  "tags:");
-			writer.writeentry(level + 3,  "- " + name);
+			writer.writeentry(level + 3,  "- " + tagName);
 			writer.writeentry(level + 2,  "summary: " + "Configure " + name);
+			if (!parentParams.isEmpty()) {
+				writer.writeentry(level + 2,  "parameters:");
+				parentParams.writeLines(writer, level + 3);
+			}
 			writer.writeentry(level + 2,  "requestBody:");
 			writer.writeentry(level + 3,  "content:");
 			writer.writeentry(level + 4,  "application/json:");
 			writer.writeentry(level + 5,  "schema:");
-			writer.writeentry(level + 6,  "$ref: \"#/components/schemas/" + componentPath + "\"");
+			if (isArray) {
+				writer.writeentry(level + 6,  "type: array");
+				writer.writeentry(level + 6,  "items:");
+				writer.writeentry(level + 7,  "$ref: \"#/components/schemas/" + componentPath + "\"");
+			} else {
+				writer.writeentry(level + 6,  "$ref: \"#/components/schemas/" + componentPath + "\"");
+			}
 			writer.writeentry(level + 5,  "example:");
 			writer.writeentry(level + 2, "responses:");
 			writer.writeentry(level + 3,  "'200':");
 			writer.writeentry(level + 4,  "description: OK");
+			
 			// GET
 			writer.writeentry(level + 1,  "get:");
 			writer.writeentry(level + 2,  "tags:");
-			writer.writeentry(level + 3,  "- " + name);
+			writer.writeentry(level + 3,  "- " + tagName);
 			writer.writeentry(level + 2,  "summary: " + "Get " + name + " configuration");
+			if (!parentParams.isEmpty()) {
+				writer.writeentry(level + 2,  "parameters:");
+				parentParams.writeLines(writer, level + 3);
+			}
+
 			writer.writeentry(level + 2,  "responses:");
 			writer.writeentry(level + 3,  "200:");
 			writer.writeentry(level + 4,  "description: " + name + " configuration");
 			writer.writeentry(level + 4,  "content:");
 			writer.writeentry(level + 5,  "application/json:");
 			writer.writeentry(level + 6,  "schema:");
-			writer.writeentry(level + 7,  "$ref: \"#/components/schemas/" + componentPath + "\"");
+			if (isArray) {
+				writer.writeentry(level + 7,  "type: array");
+				writer.writeentry(level + 7,  "items:");
+				writer.writeentry(level + 8,  "$ref: \"#/components/schemas/" + componentPath + "\"");
+			} else {
+				writer.writeentry(level + 7,  "$ref: \"#/components/schemas/" + componentPath + "\"");
+			}
 			writer.writeentry(level + 6,  "example:");
+			
+			if (parentArray) {
+				// DELETE
+				writer.writeentry(level + 1,  "delete:");
+				writer.writeentry(level + 2,  "tags:");
+				writer.writeentry(level + 3,  "- " + tagName);
+				writer.writeentry(level + 2,  "summary: " + "Delete " + name);
+				if (!parentParams.isEmpty()) {
+					writer.writeentry(level + 2,  "parameters:");
+					parentParams.writeLines(writer, level + 3);
+				}
+				writer.writeentry(level + 2, "responses:");
+				writer.writeentry(level + 3,  "'200':");
+				writer.writeentry(level + 4,  "description: OK");
+
+			}
 	
 			// Now go through all child elements for their endpoints
 	        for (int i = 0; i < children.size(); i++) {
 	            SchemaItem schemaItem = children.get(i);
-	            schemaItem.generateYamlEndpoints(writer, level, url, topSchemas);
+	            String childTag;
+	            if (rootElement) {
+	            	childTag = schemaItem.getName();
+	            } else {
+	            	childTag = tagName;
+	            }
+	            schemaItem.generateYamlEndpoints(writer, level, url, topSchemas, isArray,
+	            		new SchemaResultHolder(parentParams), false, childTag);
 	        }
+        }
+        if (referenceType) {
+        	SchemaItem refItem = findReference(topSchemas);
+        	if (refItem != null) {
+	            String childTag;
+	            if (rootElement) {
+	            	childTag = refItem.getName();
+	            } else {
+	            	childTag = tagName;
+	            }
+
+        		refItem.generateYamlEndpoints(writer, level, url, topSchemas, isArray,
+        				new SchemaResultHolder(parentParams), false, childTag);
+        	}
         }
 	}
 

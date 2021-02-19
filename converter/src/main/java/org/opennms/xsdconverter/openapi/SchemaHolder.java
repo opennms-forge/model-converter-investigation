@@ -43,8 +43,14 @@ public class SchemaHolder {
 		generateYamlInfo(writer);
 		generateYamlEndpoints(writer);
         generateYamlOpenApiComponents(writer);
+        generateYamlServers(writer);
         return writer.getResult();
     }
+
+	private void generateYamlServers(SchemaWriter writer) {
+		writer.writeentry(0, "servers:");
+		writer.writeentry(1, "- url: 'http://localhost:8080/configuration/services'");
+	}
 
 	private void generateYamlInfo(SchemaWriter writer) {
 		writer.writeentry(0,  "openapi: 3.0.3");
@@ -58,7 +64,8 @@ public class SchemaHolder {
 		writer.writeentry(0,  "paths:");
 		
 		// Write out the root element, then let it traverse for all underneath it
-		rootItem.generateYamlEndpoints(writer, 1, "/" + servName, schemaItems);
+		rootItem.generateYamlEndpoints(writer, 1, "/" + servName, schemaItems, false,
+				new SchemaResultHolder(), true, "");
 	}
 
 	private void generateYamlOpenApiComponents(SchemaWriter writer) {
