@@ -14,7 +14,9 @@ import java.util.Set;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -31,6 +33,7 @@ import com.atlassian.oai.validator.model.SimpleRequest.Builder;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.underscore.lodash.U;
 
@@ -63,14 +66,14 @@ public class ConfigController {
 
 	///////////// Configuring service schemas
 	
-	@PostMapping(path = "/configuration/schemas/{service}", consumes=MediaType.APPLICATION_JSON_VALUE)
-	public String registerServiceSchema(@PathVariable("service") String serviceName, @RequestBody String jsonSchema) {
+	@PostMapping(path = "/configuration/schemas/{service}", consumes=MediaType.APPLICATION_JSON_VALUE, produces=MediaType.APPLICATION_JSON_VALUE)
+	public ResponseEntity<JsonNode> registerServiceSchema(@PathVariable("service") String serviceName, @RequestBody String jsonSchema) {
 		registry.RegisterService(serviceName, jsonSchema);
 		validator.updatedService(serviceName);
-		return "";
+		return ResponseEntity.ok().build();
 	}
 	
-	@GetMapping("/configuration/schemas")
+	@GetMapping(path="/configuration/schemas", produces=MediaType.TEXT_PLAIN_VALUE)
 	public String getServiceList() {
 		Set<String> services = registry.getServiceList();
 		Iterator it = services.iterator();
@@ -83,29 +86,23 @@ public class ConfigController {
 
 	
 	/////////////////////// Top level configuration of services
-	@PostMapping(path = "/configuration/services/{service}", consumes=MediaType.APPLICATION_JSON_VALUE)
-	public String postjsonservice(HttpServletRequest servletRequest, @PathVariable("service") String servicename, @RequestBody String json) {
+	@PostMapping(path = "/configuration/services/{service}", consumes=MediaType.APPLICATION_JSON_VALUE, produces=MediaType.APPLICATION_JSON_VALUE)
+	public ResponseEntity<JsonNode> postjsonservice(HttpServletRequest servletRequest, @PathVariable("service") String servicename, @RequestBody String json) {
 		if (! validator.isRequestValid(servicename, servletRequest, json)) {
-			return "Invalid request";
+			return ResponseEntity.badRequest().build();
 		}
 
-		System.out.println("Received service " + servicename);
-		System.out.println("Validated");
-		
 		JSONObject jsonobj = new JSONObject(json);
-		System.out.println("Created JSON Object for service");
 		try {
 			jsonstore.setService(servicename, jsonobj);
 		} catch (org.opennms.configengine.store.JSONStore.ModelException e) {
-			// TODO Auto-generated catch block
-			return "Error: " + e.getLocalizedMessage();
+			return ResponseEntity.badRequest().build();
 		}
-		return "WORKED";
+		return ResponseEntity.ok().build();
 	}
 	
 	@GetMapping(path = "/configuration/services/{service}", produces=MediaType.APPLICATION_JSON_VALUE)
 	public String getjsonservice(@PathVariable("service") String servicename) {
-		System.out.println("Received service " + servicename);
 		JSONObject serviceObj = jsonstore.getService(servicename);
 		if (serviceObj == null) {
 			return "Error";
@@ -113,91 +110,108 @@ public class ConfigController {
 		return serviceObj.toString();
 	}
 
-	/////////// Endpoints for  inside the servic
-	@PostMapping(path = "/configuration/services/{service}/**", consumes=MediaType.APPLICATION_JSON_VALUE)
-	public String postjsonservicedetails(HttpServletRequest servletRequest, @PathVariable("service") String servicename, @RequestBody String json) {
+	/////////// Endpoints for  inside the service
+	@PostMapping(path = "/configuration/services/{service}/**", consumes=MediaType.APPLICATION_JSON_VALUE, produces=MediaType.APPLICATION_JSON_VALUE)
+	public ResponseEntity<JsonNode> postjsonservicedetails(HttpServletRequest servletRequest, @PathVariable("service") String servicename, @RequestBody String json) {
 		if (! validator.isRequestValid(servicename, servletRequest, json)) {
-			return "Invalid request";
+			return ResponseEntity.badRequest().build();
 		}
 
 		String path = servletRequest.getServletPath();
 		// Remove the /configuration/services/service part
 		String startpath = "/configuration/services/" + servicename + "/";
 		if (! path.startsWith(startpath)) {
-			return "PATH ERROR";
+			return ResponseEntity.notFound().build();
 		}
 		String target = path.substring(startpath.length());
 		String[] parts = target.split("/");
 				
 		JSONTokener jsontokener = new JSONTokener(json);
 		Object jsonobj = jsontokener.nextValue();
-		System.out.println("Tokener: " + jsonobj.getClass().getName());
 		
-		System.out.println("Created JSON Object");
 		try {
-			return jsonstore.addServiceConfig(servicename, parts, jsonobj);
+			jsonstore.addServiceConfig(servicename, parts, jsonobj);
+			return ResponseEntity.ok().build();
 		} catch (org.opennms.configengine.store.JSONStore.ModelException e) {
-			return e.getLocalizedMessage();
+			return ResponseEntity.badRequest().build();
 		}
 	}
 
-	@PutMapping(path = "/configuration/services/{service}/**", consumes=MediaType.APPLICATION_JSON_VALUE)
-	public String putjsonservicedetails(HttpServletRequest servletRequest, @PathVariable("service") String servicename, @RequestBody String json) {
+	@PutMapping(path = "/configuration/services/{service}/**", consumes=MediaType.APPLICATION_JSON_VALUE, produces=MediaType.APPLICATION_JSON_VALUE)
+	public ResponseEntity<JsonNode> putjsonservicedetails(HttpServletRequest servletRequest, @PathVariable("service") String servicename, @RequestBody String json) {
 		if (! validator.isRequestValid(servicename, servletRequest, json)) {
-			return "Invalid request";
+			return ResponseEntity.badRequest().build();
 		}
 
 		String path = servletRequest.getServletPath();
 		// Remove the /configuration/services/service part
 		String startpath = "/configuration/services/" + servicename + "/";
 		if (! path.startsWith(startpath)) {
-			return "PATH ERROR";
+			return ResponseEntity.notFound().build();
 		}
 		String target = path.substring(startpath.length());
 		String[] parts = target.split("/");
 				
 		JSONTokener jsontokener = new JSONTokener(json);
 		Object jsonobj = jsontokener.nextValue();
-		System.out.println("Tokener: " + jsonobj.getClass().getName());
 		
-		System.out.println("Created JSON Object");
-		return jsonstore.updateServiceConfig(servicename, parts, jsonobj);
+		try {
+			jsonstore.updateServiceConfig(servicename, parts, jsonobj);
+		} catch (org.opennms.configengine.store.JSONStore.ModelException e) {
+			return ResponseEntity.badRequest().build();
+		}
+		return ResponseEntity.ok().build();
 	}
 
-	@GetMapping(path = "/configuration/services/{service}/**")
-	public String getjsonservicedetails(HttpServletRequest servletRequest, @PathVariable("service") String servicename) {
+	@GetMapping(path = "/configuration/services/{service}/**", produces = MediaType.APPLICATION_JSON_VALUE)
+	public ResponseEntity<JsonNode> getjsonservicedetails(HttpServletRequest servletRequest, @PathVariable("service") String servicename) {
 		if (! validator.isRequestValid(servicename, servletRequest, "")) {
-			return "Invalid request";
+			return ResponseEntity.badRequest().build();
 		}
 
 		String path = servletRequest.getServletPath();
 		// Remove the /configuration/services/service part
 		String startpath = "/configuration/services/" + servicename + "/";
 		if (! path.startsWith(startpath)) {
-			return "PATH ERROR";
+			return ResponseEntity.notFound().build();
 		}
 		String target = path.substring(startpath.length());
 		String[] parts = target.split("/");
 				
-		return jsonstore.getExistingService(servicename, parts);
+		String strjson = jsonstore.getExistingService(servicename, parts);
+		ObjectMapper mapper = new ObjectMapper();
+		try {
+			JsonNode json = mapper.readTree(strjson);
+			System.out.println("Response: " + strjson);
+			return ResponseEntity.ok(json);
+		} catch (JsonMappingException e) {
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+		} catch (JsonProcessingException e) {
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+		}
 	}
 
-	@DeleteMapping(path = "/configuration/services/{service}/**")
-	public String deletejsonservicedetails(HttpServletRequest servletRequest, @PathVariable("service") String servicename) {
+	@DeleteMapping(path = "/configuration/services/{service}/**", produces = MediaType.APPLICATION_JSON_VALUE)
+	public ResponseEntity<JsonNode> deletejsonservicedetails(HttpServletRequest servletRequest, @PathVariable("service") String servicename) {
 		if (! validator.isRequestValid(servicename, servletRequest, "")) {
-			return "Invalid request";
+			return ResponseEntity.badRequest().build();
 		}
 
 		String path = servletRequest.getServletPath();
 		// Remove the /configuration/services/service part
 		String startpath = "/configuration/services/" + servicename + "/";
 		if (! path.startsWith(startpath)) {
-			return "PATH ERROR";
+			return ResponseEntity.notFound().build();
 		}
 		String target = path.substring(startpath.length());
 		String[] parts = target.split("/");
 				
-		return jsonstore.deleteServiceConfig(servicename, parts);
+		try {
+			jsonstore.deleteServiceConfig(servicename, parts);
+		} catch (org.opennms.configengine.store.JSONStore.ModelException e) {
+			return ResponseEntity.badRequest().build();
+		}
+		return ResponseEntity.ok().build();
 	}
 
 

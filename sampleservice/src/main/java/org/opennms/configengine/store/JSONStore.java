@@ -37,9 +37,9 @@ public class JSONStore {
 	public JSONStore() {
 	}
 		
-	public String setService(String servicename, JSONObject json) throws ModelException {
+	public void setService(String servicename, JSONObject json) throws ModelException {
 		rootmap.put(servicename, json);
-		return "";
+		return;
 	}
 	
 	public JSONObject getService(String servicename) {
@@ -49,7 +49,7 @@ public class JSONStore {
 		return null;
 	}
 	
-	public String addServiceConfig(String servicename, String[] parts, Object jsonobj) throws ModelException {
+	public void addServiceConfig(String servicename, String[] parts, Object jsonobj) throws ModelException {
 		Object currentLevel = rootmap.get(servicename);
 		
 		// Go down the 'parts' path to the correct level/node.
@@ -67,32 +67,28 @@ public class JSONStore {
 				if (matchobj instanceof JSONArray) {
 					JSONArray array = (JSONArray) matchobj;
 					array.put(jsonobj);
-					return "";
+					return;
 				} else {
-					return "Error: Already exists";
+					throw new ModelException("Error: Already exists");
 				}
 			} else {
 				obj.put(key, jsonobj);
-				return "";
+				return;
 			}
 		} else if (currentLevel instanceof JSONArray) {
 			// Cannot do a post against an actual array
-			return "Error: Invalid post";
+			throw new ModelException("Error: Invalid post");
 		}
-		return "Unknown json type";
+		throw new ModelException("Unknown json type");
 	}
 
-	public String updateServiceConfig(String servicename, String[] parts, Object jsonobj) {
+	public void updateServiceConfig(String servicename, String[] parts, Object jsonobj) throws ModelException {
 		Object currentLevel = rootmap.get(servicename);
 		
 		// Go down the 'parts' path to the correct level/node.
 		// Need to update the second-last since it points to the one we need to change
 		int endLevel = parts.length - 1;
-		try {
-			currentLevel = traversePath(parts, currentLevel, endLevel);
-		} catch (ModelException e) {
-			return "Error: " + e.getLocalizedMessage();
-		}
+		currentLevel = traversePath(parts, currentLevel, endLevel);
 		
 		// Now replace...
 		String key = parts[parts.length-1];
@@ -101,9 +97,9 @@ public class JSONStore {
 			JSONObject obj = (JSONObject) currentLevel;
 			if (obj.has(key)) {
 				obj.put(key, jsonobj);
-				return "";
+				return;
 			} else {
-				return "No such item";
+				throw new ModelException("No such item");
 			}
 		} else if (currentLevel instanceof JSONArray) {
 			// Make sure the index is valid
@@ -111,12 +107,12 @@ public class JSONStore {
 			JSONArray array = (JSONArray) currentLevel;
 			if (array.length() > index) {
 				array.put(index, jsonobj);
-				return "";
+				return;
 			} else {
-				return "Index out of range";
+				throw new ModelException("Index out of range");
 			}
 		}
-		return "Unknown json type";
+		throw new ModelException("Unknown json type");
 	}
 
 	private Object traversePath(String[] levelKeys, Object jsonObj, int numberOfLevels) throws ModelException {
@@ -157,36 +153,30 @@ public class JSONStore {
 		}	
 	}
 
-	public String deleteServiceConfig(String servicename, String[] parts)  {
+	public void deleteServiceConfig(String servicename, String[] parts) throws ModelException  {
 		// Get the parent of the item of interest
 		int level = parts.length - 1;
 		
 		Object item;
-		try {
-			item = traversePath(parts, rootmap.get(servicename), level);
-		} catch (ModelException e) {
-			return e.getLocalizedMessage();
-		}
+		item = traversePath(parts, rootmap.get(servicename), level);
 		String key = parts[parts.length - 1];
 		if (item != null) {
 			if (item instanceof JSONObject) {
 				JSONObject obj = (JSONObject) item;
 				obj.remove(key);
-				return "Removed";
+				return;
 			} else if (item instanceof JSONArray) {
 				JSONArray array = (JSONArray) item;
 				int index = Integer.parseInt(key);
 				if (index >= array.length()) {
-					return "Index out of range";
+					throw new ModelException("Index out of range");
 				} else {
-					System.out.println("Before\n" + array.toString());
 					array.remove(index);
-					System.out.println("After removing " + index + ":\n" + array.toString());
-					return "Removed";
+					return;
 				}
 			}
 		}
-		return "Error";
+		throw new ModelException("Invalid path");
 	}
 
 }
