@@ -193,6 +193,7 @@ public class ConfigController {
 
 	@DeleteMapping(path = "/configuration/services/{service}/**", produces = MediaType.APPLICATION_JSON_VALUE)
 	public ResponseEntity<JsonNode> deletejsonservicedetails(HttpServletRequest servletRequest, @PathVariable("service") String servicename) {
+		System.out.println("Delete with " + servicename);
 		if (! validator.isRequestValid(servicename, servletRequest, "")) {
 			return ResponseEntity.badRequest().build();
 		}
